@@ -51,14 +51,11 @@ where
     }
 
     fn call(&mut self, mut req: Request<ReqBody>) -> Self::Future {
-        let original_uri = req.uri().clone();
-
         ResponseFuture {
             state: State::FirstFuture {
                 f: self.first.clone().oneshot(req),
             },
             second: Some(self.second.clone()),
-            original_uri: Some(original_uri),
         }
     }
 }
@@ -73,9 +70,6 @@ pin_project! {
         #[pin]
         state: State<A, B, ReqBody>,
         second: Option<B>,
-        // Some services, namely `Nested`, mutates the request URI so we must
-        // restore it to its original state before calling `second`
-        original_uri: Option<http::Uri>,
     }
 }
 
@@ -110,7 +104,7 @@ where
                 StateProj::FirstFuture { f } => {
                     let mut response = ready!(f.poll(cx)?);
 
-                    let mut req = if let Some(ext) = response
+                    let req = if let Some(ext) = response
                         .extensions_mut()
                         .remove::<FromEmptyRouter<ReqBody>>()
                     {
@@ -118,8 +112,6 @@ where
                     } else {
                         return Poll::Ready(Ok(response));
                     };
-
-                    *req.uri_mut() = this.original_uri.take().unwrap();
 
                     let second = this.second.take().expect("future polled after completion");
 
