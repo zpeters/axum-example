@@ -492,6 +492,16 @@ async fn captures_dont_match_empty_segments() {
     assert_eq!(res.status(), StatusCode::OK);
 }
 
+#[tokio::test]
+async fn wildcard_sees_whole_url() {
+    let app = Router::new().route("/api/*rest", get(|uri: Uri| async move { uri.to_string() }));
+
+    let client = TestClient::new(app);
+
+    let res = client.get("/api/foo/bar").send().await;
+    assert_eq!(res.text().await, "/api/foo/bar");
+}
+
 pub(crate) fn assert_send<T: Send>() {}
 pub(crate) fn assert_sync<T: Sync>() {}
 pub(crate) fn assert_unpin<T: Unpin>() {}
