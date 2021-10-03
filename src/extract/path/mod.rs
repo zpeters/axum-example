@@ -194,7 +194,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn wild_card() {
+    async fn wildcard() {
         let app = Router::new()
             .route(
                 "/foo/*rest",
